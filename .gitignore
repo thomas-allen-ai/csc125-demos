@@ -1,0 +1,17 @@
+# Editor temp files
+.#*
+*~
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# IDE folders
+.idea/
+.vscode/
+*.sublime-*
+
+# OS files
+.DS_Store
+.AppleDouble
+.LSOverride
