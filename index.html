@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSC 125 Demos</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            margin: 0;
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        h1 {
+            margin: 0 0 5px 0;
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: #fff;
+        }
+        
+        .subtitle {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+        }
+        
+        .demos {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .demo-link {
+            display: block;
+            background: #16213e;
+            padding: 18px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            color: #fff;
+            transition: background 0.2s, transform 0.1s;
+        }
+        
+        .demo-link:hover {
+            background: #1e2a4a;
+        }
+        
+        .demo-link:active {
+            transform: scale(0.98);
+        }
+        
+        .demo-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .demo-desc {
+            font-size: 0.85rem;
+            color: #888;
+        }
+        
+        .section-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #555;
+            margin-top: 20px;
+            margin-bottom: 8px;
+            padding-left: 4px;
+        }
+        
+        .demo-link.coming-soon {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        
+        .demo-link.coming-soon .demo-title::after {
+            content: " (coming soon)";
+            font-weight: 400;
+            font-size: 0.8rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>CSC 125</h1>
+    <p class="subtitle">AI in Everyday Language</p>
+    
+    <div class="demos">
+        <div class="section-label">Unit 1: Classical AI</div>
+        
+        <a href="8puzzle.html" class="demo-link">
+            <div class="demo-title">8-Puzzle</div>
+            <div class="demo-desc">Play the sliding tile puzzle</div>
+        </a>
+        
+        <a href="8puzzle-search.html" class="demo-link">
+            <div class="demo-title">8-Puzzle: Search</div>
+            <div class="demo-desc">Explore states, backtracking, and heuristics</div>
+        </a>
+    </div>
+</body>
+</html>

@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>8-Puzzle: Search</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .back-link {
+            align-self: flex-start;
+            color: #6b9080;
+            text-decoration: none;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        
+        h1 {
+            margin: 0 0 5px 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #fff;
+        }
+        
+        .subtitle {
+            color: #888;
+            font-size: 0.85rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        .puzzle-container {
+            background: #16213e;
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        
+        .puzzle {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            width: min(70vw, 240px);
+            height: min(70vw, 240px);
+        }
+        
+        .tile {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: min(10vw, 36px);
+            font-weight: 700;
+            border-radius: 6px;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.15s ease;
+            position: relative;
+        }
+        
+        .tile.numbered {
+            background: linear-gradient(145deg, #4a6fa5, #3d5a80);
+            color: #fff;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+        }
+        
+        .tile.numbered:active {
+            transform: scale(0.95);
+        }
+        
+        .tile.movable {
+            background: linear-gradient(145deg, #6b9080, #5a7a6a);
+        }
+        
+        .tile.empty {
+            background: rgba(255,255,255,0.05);
+            cursor: default;
+        }
+        
+        /* Manhattan distance badge */
+        .tile .hint {
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            background: rgba(0,0,0,0.5);
+            color: #ffd700;
+            font-size: 0.6rem;
+            font-weight: 600;
+            padding: 2px 5px;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .show-hints .tile.movable .hint {
+            display: block;
+        }
+        
+        .stats-row {
+            display: flex;
+            gap: 25px;
+            justify-content: center;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #6b9080;
+        }
+        
+        .stat-label {
+            color: #888;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            background: #4a6fa5;
+            color: #fff;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        
+        button:hover {
+            background: #5a7fb5;
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        button.secondary {
+            background: #3d5a80;
+        }
+        
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #888;
+        }
+        
+        .toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: #3d5a80;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .toggle.active {
+            background: #6b9080;
+        }
+        
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            background: #fff;
+            border-radius: 50%;
+            transition: left 0.2s;
+        }
+        
+        .toggle.active::after {
+            left: 23px;
+        }
+        
+        .history-panel {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 12px;
+            width: 100%;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .history-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .history-path {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        
+        .history-step {
+            background: #3d5a80;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .history-step.start {
+            background: #4a6fa5;
+        }
+        
+        .history-empty {
+            color: #555;
+            font-size: 0.85rem;
+            font-style: italic;
+        }
+        
+        .branching-info {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 12px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .branching-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+        
+        .branching-value {
+            font-size: 1.1rem;
+            color: #ffd700;
+        }
+        
+        .branching-value span {
+            color: #888;
+            font-size: 0.85rem;
+        }
+        
+        .win-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(107, 144, 128, 0.95);
+            color: #fff;
+            padding: 25px 40px;
+            border-radius: 12px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            z-index: 100;
+            text-align: center;
+        }
+        
+        .win-message.hidden {
+            display: none;
+        }
+        
+        .win-stats {
+            font-size: 0.9rem;
+            font-weight: 400;
+            margin-top: 8px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">← Back to demos</a>
+    
+    <h1>8-Puzzle: Search</h1>
+    <p class="subtitle">Explore the state space with backtracking</p>
+    
+    <div class="main-content">
+        <div class="puzzle-container">
+            <div class="puzzle" id="puzzle"></div>
+        </div>
+        
+        <div class="stats-row">
+            <div class="stat">
+                <div class="stat-value" id="depth">0</div>
+                <div class="stat-label">Depth</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="totalManhattan">0</div>
+                <div class="stat-label">Distance</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="statesVisited">1</div>
+                <div class="stat-label">States Seen</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="undo()" id="undoBtn" disabled>↩ Undo</button>
+            <button onclick="scramblePuzzle()" class="secondary">Scramble</button>
+            <button onclick="resetPuzzle()" class="secondary">Reset</button>
+        </div>
+        
+        <div class="toggle-row">
+            <div class="toggle" id="hintToggle" onclick="toggleHints()"></div>
+            <span>Show heuristic hints</span>
+        </div>
+        
+        <div class="branching-info">
+            <div class="branching-label">Available moves from here</div>
+            <div class="branching-value" id="branchingDisplay">2 choices <span>→ each leads to a new state</span></div>
+        </div>
+        
+        <div class="history-panel">
+            <div class="history-label">Path from start</div>
+            <div class="history-path" id="historyPath">
+                <span class="history-empty">Make a move to begin exploring...</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="win-message hidden" id="winMessage">
+        🎉 Solved!
+        <div class="win-stats" id="winStats"></div>
+    </div>
+
+    <script>
+        // State management
+        let state = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+        let history = []; // Stack of {state, movedTile}
+        let statesVisited = new Set();
+        let showHints = false;
+        
+        const SOLVED = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+        
+        // Goal positions for each tile (index in solved state)
+        const GOAL_POS = {
+            1: 0, 2: 1, 3: 2,
+            4: 3, 5: 4, 6: 5,
+            7: 6, 8: 7
+        };
+        
+        function getEmptyPos() {
+            return state.indexOf(0);
+        }
+        
+        function getMovableTiles() {
+            const empty = getEmptyPos();
+            const row = Math.floor(empty / 3);
+            const col = empty % 3;
+            const movable = [];
+            
+            if (row > 0) movable.push(empty - 3);
+            if (row < 2) movable.push(empty + 3);
+            if (col > 0) movable.push(empty - 1);
+            if (col < 2) movable.push(empty + 1);
+            
+            return movable;
+        }
+        
+        // Manhattan distance for a single tile
+        function tileManhattan(tile, currentPos) {
+            if (tile === 0) return 0;
+            const goalPos = GOAL_POS[tile];
+            const currentRow = Math.floor(currentPos / 3);
+            const currentCol = currentPos % 3;
+            const goalRow = Math.floor(goalPos / 3);
+            const goalCol = goalPos % 3;
+            return Math.abs(currentRow - goalRow) + Math.abs(currentCol - goalCol);
+        }
+        
+        // Total Manhattan distance for entire puzzle
+        function totalManhattan() {
+            let sum = 0;
+            for (let i = 0; i < 9; i++) {
+                sum += tileManhattan(state[i], i);
+            }
+            return sum;
+        }
+        
+        // Manhattan distance if we make a specific move
+        function manhattanAfterMove(tilePos) {
+            const empty = getEmptyPos();
+            const tile = state[tilePos];
+            
+            // Simulate the move
+            const newState = [...state];
+            newState[empty] = tile;
+            newState[tilePos] = 0;
+            
+            let sum = 0;
+            for (let i = 0; i < 9; i++) {
+                if (newState[i] !== 0) {
+                    const goalPos = GOAL_POS[newState[i]];
+                    const row = Math.floor(i / 3);
+                    const col = i % 3;
+                    const goalRow = Math.floor(goalPos / 3);
+                    const goalCol = goalPos % 3;
+                    sum += Math.abs(row - goalRow) + Math.abs(col - goalCol);
+                }
+            }
+            return sum;
+        }
+        
+        function stateToString(s) {
+            return s.join(',');
+        }
+        
+        function moveTile(pos) {
+            const empty = getEmptyPos();
+            const movable = getMovableTiles();
+            
+            if (!movable.includes(pos)) return false;
+            
+            // Save current state for undo
+            history.push({
+                state: [...state],
+                movedTile: state[pos]
+            });
+            
+            // Make the move
+            state[empty] = state[pos];
+            state[pos] = 0;
+            
+            // Track visited states
+            statesVisited.add(stateToString(state));
+            
+            render();
+            checkWin();
+            return true;
+        }
+        
+        function undo() {
+            if (history.length === 0) return;
+            
+            const prev = history.pop();
+            state = prev.state;
+            render();
+        }
+        
+        function checkWin() {
+            const solved = state.every((val, idx) => val === SOLVED[idx]);
+            const winMsg = document.getElementById('winMessage');
+            
+            if (solved && history.length > 0) {
+                document.getElementById('winStats').textContent = 
+                    `Depth: ${history.length} | States explored: ${statesVisited.size}`;
+                winMsg.classList.remove('hidden');
+                setTimeout(() => winMsg.classList.add('hidden'), 3000);
+            }
+        }
+        
+        function resetPuzzle() {
+            state = [...SOLVED];
+            history = [];
+            statesVisited = new Set([stateToString(state)]);
+            document.getElementById('winMessage').classList.add('hidden');
+            render();
+        }
+        
+        function scramblePuzzle() {
+            // Random scramble with 15-25 moves
+            const depth = 15 + Math.floor(Math.random() * 11);
+            let lastMove = -1;
+            
+            state = [...SOLVED];
+            
+            for (let i = 0; i < depth; i++) {
+                const movable = getMovableTiles();
+                const filtered = movable.filter(pos => pos !== lastMove);
+                const choice = filtered[Math.floor(Math.random() * filtered.length)];
+                
+                lastMove = getEmptyPos();
+                const empty = getEmptyPos();
+                state[empty] = state[choice];
+                state[choice] = 0;
+            }
+            
+            history = [];
+            statesVisited = new Set([stateToString(state)]);
+            render();
+        }
+        
+        function toggleHints() {
+            showHints = !showHints;
+            document.getElementById('hintToggle').classList.toggle('active', showHints);
+            document.getElementById('puzzle').classList.toggle('show-hints', showHints);
+        }
+        
+        function render() {
+            const puzzle = document.getElementById('puzzle');
+            const movable = getMovableTiles();
+            
+            puzzle.innerHTML = '';
+            
+            for (let i = 0; i < 9; i++) {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                
+                if (state[i] === 0) {
+                    tile.classList.add('empty');
+                } else {
+                    tile.classList.add('numbered');
+                    tile.textContent = state[i];
+                    
+                    if (movable.includes(i)) {
+                        tile.classList.add('movable');
+                        
+                        // Add heuristic hint
+                        const hint = document.createElement('span');
+                        hint.className = 'hint';
+                        const afterMove = manhattanAfterMove(i);
+                        const current = totalManhattan();
+                        const delta = afterMove - current;
+                        hint.textContent = delta > 0 ? `+${delta}` : delta;
+                        tile.appendChild(hint);
+                    }
+                    
+                    tile.addEventListener('click', () => moveTile(i));
+                    tile.addEventListener('touchend', (e) => {
+                        e.preventDefault();
+                        moveTile(i);
+                    });
+                }
+                
+                puzzle.appendChild(tile);
+            }
+            
+            // Update stats
+            document.getElementById('depth').textContent = history.length;
+            document.getElementById('totalManhattan').textContent = totalManhattan();
+            document.getElementById('statesVisited').textContent = statesVisited.size;
+            
+            // Update undo button
+            document.getElementById('undoBtn').disabled = history.length === 0;
+            
+            // Update branching display
+            const numMoves = movable.length;
+            document.getElementById('branchingDisplay').innerHTML = 
+                `${numMoves} choice${numMoves !== 1 ? 's' : ''} <span>→ branching factor</span>`;
+            
+            // Update history path
+            const historyEl = document.getElementById('historyPath');
+            if (history.length === 0) {
+                historyEl.innerHTML = '<span class="history-empty">Make a move to begin exploring...</span>';
+            } else {
+                historyEl.innerHTML = '<span class="history-step start">Start</span>' +
+                    history.map(h => `<span class="history-step">${h.movedTile}</span>`).join('');
+            }
+        }
+        
+        // Initialize
+        statesVisited.add(stateToString(state));
+        render();
+    </script>
+</body>
+</html>
