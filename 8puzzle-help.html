@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>8-Puzzle Search: How It Works</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #ddd;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .back-link {
+            color: #6b9080;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        
+        h1 {
+            color: #fff;
+            font-size: 1.5rem;
+            margin: 15px 0 20px 0;
+        }
+        
+        h2 {
+            color: #6b9080;
+            font-size: 1.1rem;
+            margin: 25px 0 10px 0;
+            border-bottom: 1px solid #3d5a80;
+            padding-bottom: 5px;
+        }
+        
+        p {
+            margin: 0 0 12px 0;
+        }
+        
+        .concept {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .concept-title {
+            color: #fff;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .stat-explain {
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+            margin: 12px 0;
+        }
+        
+        .stat-name {
+            background: #3d5a80;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+        
+        .hint-example {
+            display: inline-block;
+            background: rgba(0,0,0,0.5);
+            color: #ffd700;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        li {
+            margin: 6px 0;
+        }
+        
+        .action-btn {
+            display: inline-block;
+            background: #4a6fa5;
+            color: #fff;
+            padding: 8px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 20px;
+        }
+        
+        .action-btn:hover {
+            background: #5a7fb5;
+        }
+        
+        em {
+            color: #aaa;
+            font-style: normal;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="8puzzle-search.html" class="back-link">← Back to puzzle</a>
+        
+        <h1>The 8-Puzzle as a Search Problem</h1>
+        
+        <p>The 8-puzzle isn't just a game—it's a classic example of a <strong>search problem</strong>. Understanding how to solve it systematically is the foundation of classical AI.</p>
+        
+        <h2>The Vocabulary of Search</h2>
+        
+        <div class="concept">
+            <div class="concept-title">State</div>
+            A specific arrangement of the tiles. The puzzle has 181,440 possible states.
+        </div>
+        
+        <div class="concept">
+            <div class="concept-title">Action</div>
+            A valid move: sliding a tile into the empty space. From any state, you have 2–4 possible actions.
+        </div>
+        
+        <div class="concept">
+            <div class="concept-title">Goal State</div>
+            Tiles arranged 1–8 in order, with the empty space in the bottom-right corner.
+        </div>
+        
+        <div class="concept">
+            <div class="concept-title">Search Space</div>
+            All possible states connected by valid moves. You're searching this space for a path from your starting state to the goal.
+        </div>
+        
+        <h2>What the Numbers Mean</h2>
+        
+        <div class="stat-explain">
+            <span class="stat-name">Depth</span>
+            <span>How many moves you've made from the start. This is how "deep" you are in the search tree.</span>
+        </div>
+        
+        <div class="stat-explain">
+            <span class="stat-name">Distance</span>
+            <span><strong>Manhattan distance</strong>—a heuristic that estimates how far you are from solved. For each tile, count how many squares it needs to move (horizontally + vertically) to reach its goal position. Add them all up. Lower is better. Zero means solved.</span>
+        </div>
+        
+        <div class="stat-explain">
+            <span class="stat-name">States Seen</span>
+            <span>How many different arrangements you've visited. This shows the "cost" of your exploration.</span>
+        </div>
+        
+        <h2>Backtracking</h2>
+        
+        <p>When you hit a dead end—no good moves available—you <strong>backtrack</strong>: undo moves until you find a point where you can try something different.</p>
+        
+        <p>This is exactly how a depth-first search algorithm works. You're doing it by hand.</p>
+        
+        <p>The <strong>Undo</strong> button lets you backtrack. The <strong>Path history</strong> shows your current path so you can see where you've been.</p>
+        
+        <h2>Heuristic Hints</h2>
+        
+        <p>Toggle "Show heuristic hints" to see a number on each movable tile:</p>
+        
+        <ul>
+            <li><span class="hint-example">-2</span> means this move <em>decreases</em> the Manhattan distance by 2—you're getting closer to solved</li>
+            <li><span class="hint-example">+1</span> means this move <em>increases</em> the distance—you're moving away from the goal</li>
+            <li><span class="hint-example">0</span> means no change</li>
+        </ul>
+        
+        <p>A <strong>greedy</strong> strategy always picks the most negative number. This often works, but sometimes you have to "go uphill" temporarily to find the solution. That's why greedy search isn't always optimal.</p>
+        
+        <h2>Try This</h2>
+        
+        <ul>
+            <li>Set scramble depth to <strong>3</strong> and solve it. Notice how few states you explore.</li>
+            <li>Set it to <strong>10</strong>. Much harder! Watch your "States Seen" grow.</li>
+            <li>Turn on hints. Can you always follow the best hint? When can't you?</li>
+            <li>Try solving <em>without</em> undo. How does that change your approach?</li>
+        </ul>
+        
+        <a href="8puzzle-search.html" class="action-btn">Try the Puzzle →</a>
+    </div>
+</body>
+</html>
