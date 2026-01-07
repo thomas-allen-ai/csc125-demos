@@ -127,21 +127,20 @@
         /* Results section */
         .results {
             display: flex;
-            gap: 20px;
+            gap: 8px;
             margin-bottom: 20px;
-            flex-wrap: wrap;
             justify-content: center;
         }
         .result-card {
             background: #2a2a4e;
-            border-radius: 12px;
-            padding: 15px 20px;
-            min-width: 200px;
-            text-align: center;
+            border-radius: 10px;
+            padding: 10px 12px;
+            width: 46%;
+            max-width: 170px;
         }
         .result-card h3 {
-            margin: 0 0 10px 0;
-            font-size: 1rem;
+            margin: 0 0 8px 0;
+            font-size: 0.8rem;
             color: #4ecdc4;
         }
         .result-card.bfs h3 {
@@ -150,8 +149,8 @@
         .result-card .metric {
             display: flex;
             justify-content: space-between;
-            margin: 5px 0;
-            font-size: 0.9rem;
+            margin: 4px 0;
+            font-size: 0.75rem;
         }
         .result-card .metric .label {
             color: #888;
@@ -164,10 +163,11 @@
             color: #4ecdc4;
         }
         .result-card .status {
-            margin-top: 10px;
-            padding: 8px;
+            margin-top: 8px;
+            padding: 6px;
             border-radius: 6px;
-            font-size: 0.85rem;
+            font-size: 0.7rem;
+            text-align: center;
         }
         .result-card .status.ready {
             background: #333;
@@ -254,18 +254,18 @@
 
     <div class="results">
         <div class="result-card astar">
-            <h3>A* (with heuristic)</h3>
-            <div class="metric"><span class="label">Nodes explored:</span><span class="value" id="astar-nodes">—</span></div>
-            <div class="metric"><span class="label">Peak frontier:</span><span class="value" id="astar-frontier">—</span></div>
-            <div class="metric"><span class="label">Solution length:</span><span class="value" id="astar-length">—</span></div>
+            <h3>A* (heuristic)</h3>
+            <div class="metric"><span class="label">Nodes:</span><span class="value" id="astar-nodes">—</span></div>
+            <div class="metric"><span class="label">Frontier:</span><span class="value" id="astar-frontier">—</span></div>
+            <div class="metric"><span class="label">Moves:</span><span class="value" id="astar-length">—</span></div>
             <div class="metric"><span class="label">Time:</span><span class="value" id="astar-time">—</span></div>
             <div class="status ready" id="astar-status">Ready</div>
         </div>
         <div class="result-card bfs">
-            <h3>BFS (uninformed)</h3>
-            <div class="metric"><span class="label">Nodes explored:</span><span class="value" id="bfs-nodes">—</span></div>
-            <div class="metric"><span class="label">Peak frontier:</span><span class="value" id="bfs-frontier">—</span></div>
-            <div class="metric"><span class="label">Solution length:</span><span class="value" id="bfs-length">—</span></div>
+            <h3>BFS (blind)</h3>
+            <div class="metric"><span class="label">Nodes:</span><span class="value" id="bfs-nodes">—</span></div>
+            <div class="metric"><span class="label">Frontier:</span><span class="value" id="bfs-frontier">—</span></div>
+            <div class="metric"><span class="label">Moves:</span><span class="value" id="bfs-length">—</span></div>
             <div class="metric"><span class="label">Time:</span><span class="value" id="bfs-time">—</span></div>
             <div class="status ready" id="bfs-status">Ready</div>
         </div>
@@ -448,7 +448,7 @@
                         
                         document.getElementById('astar-nodes').textContent = nodesExplored.toLocaleString();
                         document.getElementById('astar-frontier').textContent = peakFrontier.toLocaleString();
-                        document.getElementById('astar-length').textContent = (path.length - 1) + ' moves';
+                        document.getElementById('astar-length').textContent = (path.length - 1);
                         document.getElementById('astar-time').textContent = (endTime - startTime).toFixed(0) + ' ms';
                         statusEl.textContent = 'Solution found!';
                         statusEl.className = 'status done';
@@ -541,7 +541,7 @@
                         
                         document.getElementById('bfs-nodes').textContent = nodesExplored.toLocaleString();
                         document.getElementById('bfs-frontier').textContent = peakFrontier.toLocaleString();
-                        document.getElementById('bfs-length').textContent = (path.length - 1) + ' moves';
+                        document.getElementById('bfs-length').textContent = (path.length - 1);
                         document.getElementById('bfs-time').textContent = (endTime - startTime).toFixed(0) + ' ms';
                         statusEl.textContent = 'Solution found!';
                         statusEl.className = 'status done';
