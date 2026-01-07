@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>8-Puzzle</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #fff;
+        }
+        
+        .subtitle {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+        
+        .puzzle-container {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        
+        .puzzle {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            width: min(80vw, 300px);
+            height: min(80vw, 300px);
+        }
+        
+        .tile {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: min(12vw, 48px);
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.15s ease, background 0.15s ease;
+        }
+        
+        .tile.numbered {
+            background: linear-gradient(145deg, #4a6fa5, #3d5a80);
+            color: #fff;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .tile.numbered:hover {
+            background: linear-gradient(145deg, #5a7fb5, #4d6a90);
+        }
+        
+        .tile.numbered:active {
+            transform: scale(0.95);
+        }
+        
+        .tile.movable {
+            background: linear-gradient(145deg, #6b9080, #5a7a6a);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        .tile.movable:hover {
+            background: linear-gradient(145deg, #7ba090, #6a8a7a);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+            50% { box-shadow: 0 4px 16px rgba(107, 144, 128, 0.4); }
+        }
+        
+        .tile.empty {
+            background: rgba(255,255,255,0.05);
+            cursor: default;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            background: #4a6fa5;
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        
+        button:hover {
+            background: #5a7fb5;
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        button.secondary {
+            background: #3d5a80;
+        }
+        
+        button.secondary:hover {
+            background: #4d6a90;
+        }
+        
+        .stats {
+            margin-top: 20px;
+            display: flex;
+            gap: 30px;
+            font-size: 1rem;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #6b9080;
+        }
+        
+        .stat-label {
+            color: #888;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .scramble-options {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .scramble-options label {
+            color: #888;
+            font-size: 0.9rem;
+        }
+        
+        .scramble-options input {
+            width: 60px;
+            padding: 8px;
+            border: 1px solid #3d5a80;
+            border-radius: 6px;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 1rem;
+            text-align: center;
+        }
+        
+        .scramble-options input:focus {
+            outline: none;
+            border-color: #6b9080;
+        }
+        
+        .win-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(107, 144, 128, 0.95);
+            color: #fff;
+            padding: 30px 50px;
+            border-radius: 16px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            z-index: 100;
+            animation: popIn 0.3s ease;
+        }
+        
+        @keyframes popIn {
+            from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        
+        .win-message.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>8-Puzzle</h1>
+    <p class="subtitle">Tap a highlighted tile to slide it</p>
+    
+    <div class="puzzle-container">
+        <div class="puzzle" id="puzzle"></div>
+    </div>
+    
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-value" id="moves">0</div>
+            <div class="stat-label">Moves</div>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <button onclick="resetPuzzle()">Reset</button>
+        <button class="secondary" onclick="scramblePuzzle()">Scramble</button>
+    </div>
+    
+    <div class="scramble-options">
+        <label for="depth">Scramble depth:</label>
+        <input type="number" id="depth" value="20" min="1" max="100">
+    </div>
+    
+    <div class="win-message hidden" id="winMessage">
+        🎉 Solved!
+    </div>
+
+    <script>
+        // The puzzle state: array of 9 values (1-8 and 0 for empty)
+        // Index maps to position: 0=top-left, 1=top-center, ..., 8=bottom-right
+        let state = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+        let moveCount = 0;
+        let isSolved = true;
+        
+        const SOLVED = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+        
+        // Get the position of the empty tile (0)
+        function getEmptyPos() {
+            return state.indexOf(0);
+        }
+        
+        // Get valid moves from current state
+        // Returns array of positions that can move into the empty space
+        function getMovableTiles() {
+            const empty = getEmptyPos();
+            const row = Math.floor(empty / 3);
+            const col = empty % 3;
+            const movable = [];
+            
+            // Check all four directions
+            if (row > 0) movable.push(empty - 3); // tile above
+            if (row < 2) movable.push(empty + 3); // tile below
+            if (col > 0) movable.push(empty - 1); // tile left
+            if (col < 2) movable.push(empty + 1); // tile right
+            
+            return movable;
+        }
+        
+        // Move a tile at given position (swap with empty)
+        function moveTile(pos) {
+            const empty = getEmptyPos();
+            const movable = getMovableTiles();
+            
+            if (!movable.includes(pos)) return false;
+            
+            // Swap
+            state[empty] = state[pos];
+            state[pos] = 0;
+            moveCount++;
+            
+            render();
+            checkWin();
+            return true;
+        }
+        
+        // Check if puzzle is solved
+        function checkWin() {
+            const solved = state.every((val, idx) => val === SOLVED[idx]);
+            const winMsg = document.getElementById('winMessage');
+            
+            if (solved && !isSolved) {
+                winMsg.classList.remove('hidden');
+                setTimeout(() => winMsg.classList.add('hidden'), 2000);
+            }
+            isSolved = solved;
+        }
+        
+        // Reset to solved state
+        function resetPuzzle() {
+            state = [...SOLVED];
+            moveCount = 0;
+            isSolved = true;
+            document.getElementById('winMessage').classList.add('hidden');
+            render();
+        }
+        
+        // Scramble with k random moves
+        function scramblePuzzle() {
+            const depth = parseInt(document.getElementById('depth').value) || 20;
+            let lastMove = -1;
+            
+            for (let i = 0; i < depth; i++) {
+                const movable = getMovableTiles();
+                // Filter out the move that would undo the last move
+                const filtered = movable.filter(pos => pos !== lastMove);
+                const choice = filtered[Math.floor(Math.random() * filtered.length)];
+                
+                lastMove = getEmptyPos(); // Remember where empty was
+                
+                // Swap
+                const empty = getEmptyPos();
+                state[empty] = state[choice];
+                state[choice] = 0;
+            }
+            
+            moveCount = 0;
+            isSolved = false;
+            render();
+        }
+        
+        // Render the puzzle
+        function render() {
+            const puzzle = document.getElementById('puzzle');
+            const movable = getMovableTiles();
+            
+            puzzle.innerHTML = '';
+            
+            for (let i = 0; i < 9; i++) {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                
+                if (state[i] === 0) {
+                    tile.classList.add('empty');
+                } else {
+                    tile.classList.add('numbered');
+                    tile.textContent = state[i];
+                    
+                    if (movable.includes(i)) {
+                        tile.classList.add('movable');
+                    }
+                    
+                    tile.addEventListener('click', () => moveTile(i));
+                    tile.addEventListener('touchend', (e) => {
+                        e.preventDefault();
+                        moveTile(i);
+                    });
+                }
+                
+                puzzle.appendChild(tile);
+            }
+            
+            document.getElementById('moves').textContent = moveCount;
+        }
+        
+        // Initialize
+        render();
+    </script>
+</body>
+</html>
