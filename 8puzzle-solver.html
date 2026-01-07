@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>8-Puzzle: Solver Comparison</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            margin: 0 0 5px 0;
+            font-size: 1.5rem;
+            color: #fff;
+        }
+        .subtitle {
+            color: #888;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+        .subtitle a {
+            color: #4ecdc4;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+        }
+        button {
+            background: #4ecdc4;
+            color: #1a1a2e;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        button:hover {
+            background: #45b7aa;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        button:disabled {
+            background: #555;
+            color: #888;
+            cursor: not-allowed;
+        }
+        button.solve-btn {
+            background: #ff6b6b;
+        }
+        button.solve-btn:hover {
+            background: #ee5a5a;
+        }
+        button.solve-bfs {
+            background: #ffd93d;
+            color: #1a1a2e;
+        }
+        button.solve-bfs:hover {
+            background: #f0ca2e;
+        }
+        .depth-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #aaa;
+        }
+        .depth-control input {
+            width: 60px;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            background: #2a2a4e;
+            color: #fff;
+            font-size: 1rem;
+            text-align: center;
+        }
+        .puzzle-container {
+            position: relative;
+            margin: 10px 0 20px 0;
+        }
+        .puzzle {
+            display: grid;
+            grid-template-columns: repeat(3, 80px);
+            grid-template-rows: repeat(3, 80px);
+            gap: 4px;
+            background: #2a2a4e;
+            padding: 8px;
+            border-radius: 12px;
+        }
+        .tile {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            border-radius: 8px;
+            background: #4a4a7e;
+            color: #fff;
+            transition: transform 0.15s ease-out;
+        }
+        .tile.empty {
+            background: transparent;
+        }
+        .tile.highlight {
+            background: #4ecdc4;
+            color: #1a1a2e;
+        }
+
+        /* Results section */
+        .results {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .result-card {
+            background: #2a2a4e;
+            border-radius: 12px;
+            padding: 15px 20px;
+            min-width: 200px;
+            text-align: center;
+        }
+        .result-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 1rem;
+            color: #4ecdc4;
+        }
+        .result-card.bfs h3 {
+            color: #ffd93d;
+        }
+        .result-card .metric {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            font-size: 0.9rem;
+        }
+        .result-card .metric .label {
+            color: #888;
+        }
+        .result-card .metric .value {
+            color: #fff;
+            font-weight: 600;
+        }
+        .result-card .metric .value.winner {
+            color: #4ecdc4;
+        }
+        .result-card .status {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+        .result-card .status.ready {
+            background: #333;
+            color: #888;
+        }
+        .result-card .status.running {
+            background: #3a3a5e;
+            color: #ffd93d;
+        }
+        .result-card .status.done {
+            background: #2a4a3e;
+            color: #4ecdc4;
+        }
+        .result-card .status.failed {
+            background: #4a2a2e;
+            color: #ff6b6b;
+        }
+
+        /* Playback controls */
+        .playback {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        .playback button {
+            padding: 10px 15px;
+            font-size: 0.9rem;
+        }
+        .step-display {
+            color: #888;
+            font-size: 0.9rem;
+            min-width: 100px;
+            text-align: center;
+        }
+
+        /* Solution display */
+        .solution-display {
+            background: #2a2a4e;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: #aaa;
+            max-width: 300px;
+            text-align: center;
+        }
+        .solution-display .current-move {
+            color: #4ecdc4;
+            font-weight: bold;
+        }
+
+        .note {
+            color: #666;
+            font-size: 0.8rem;
+            text-align: center;
+            max-width: 350px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>8-Puzzle: Solver Comparison</h1>
+    <div class="subtitle"><a href="index.html">← Back</a> | <a href="8puzzle-solver-help.html">What am I seeing?</a></div>
+
+    <div class="controls">
+        <div class="depth-control">
+            <label for="depth">Scramble:</label>
+            <input type="number" id="depth" value="10" min="1" max="25">
+            <span>moves</span>
+        </div>
+        <button onclick="scramble()">Scramble</button>
+    </div>
+
+    <div class="puzzle-container">
+        <div class="puzzle" id="puzzle"></div>
+    </div>
+
+    <div class="controls">
+        <button class="solve-btn" onclick="solveAStar()">Solve with A*</button>
+        <button class="solve-bfs" onclick="solveBFS()">Solve with BFS</button>
+    </div>
+
+    <div class="results">
+        <div class="result-card astar">
+            <h3>A* (with heuristic)</h3>
+            <div class="metric"><span class="label">Nodes explored:</span><span class="value" id="astar-nodes">—</span></div>
+            <div class="metric"><span class="label">Peak frontier:</span><span class="value" id="astar-frontier">—</span></div>
+            <div class="metric"><span class="label">Solution length:</span><span class="value" id="astar-length">—</span></div>
+            <div class="metric"><span class="label">Time:</span><span class="value" id="astar-time">—</span></div>
+            <div class="status ready" id="astar-status">Ready</div>
+        </div>
+        <div class="result-card bfs">
+            <h3>BFS (uninformed)</h3>
+            <div class="metric"><span class="label">Nodes explored:</span><span class="value" id="bfs-nodes">—</span></div>
+            <div class="metric"><span class="label">Peak frontier:</span><span class="value" id="bfs-frontier">—</span></div>
+            <div class="metric"><span class="label">Solution length:</span><span class="value" id="bfs-length">—</span></div>
+            <div class="metric"><span class="label">Time:</span><span class="value" id="bfs-time">—</span></div>
+            <div class="status ready" id="bfs-status">Ready</div>
+        </div>
+    </div>
+
+    <div class="playback">
+        <button onclick="stepBack()" id="btn-back">◀ Back</button>
+        <button onclick="stepForward()" id="btn-forward">Forward ▶</button>
+        <button onclick="autoPlay()" id="btn-play">▶ Play</button>
+        <button onclick="resetPlayback()" id="btn-reset">Reset</button>
+    </div>
+
+    <div class="solution-display" id="solution-display">
+        Scramble and solve to see solution
+    </div>
+
+    <div class="step-display" id="step-display">Step 0 / 0</div>
+
+    <p class="note">
+        Node limit: 100,000. Deep scrambles may cause BFS to give up while A* succeeds.
+    </p>
+
+    <script>
+        const GOAL = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+        const NODE_LIMIT = 100000;
+        
+        let tiles = [...GOAL];
+        let scrambledState = [...GOAL];
+        let currentSolution = null;
+        let playbackIndex = 0;
+        let autoPlayInterval = null;
+
+        function render() {
+            const puzzle = document.getElementById('puzzle');
+            puzzle.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const tile = document.createElement('div');
+                tile.className = 'tile' + (tiles[i] === 0 ? ' empty' : '');
+                tile.textContent = tiles[i] || '';
+                puzzle.appendChild(tile);
+            }
+        }
+
+        function stateToString(state) {
+            return state.join(',');
+        }
+
+        function getEmptyIndex(state) {
+            return state.indexOf(0);
+        }
+
+        function getNeighbors(idx) {
+            const neighbors = [];
+            const row = Math.floor(idx / 3);
+            const col = idx % 3;
+            if (row > 0) neighbors.push(idx - 3);
+            if (row < 2) neighbors.push(idx + 3);
+            if (col > 0) neighbors.push(idx - 1);
+            if (col < 2) neighbors.push(idx + 1);
+            return neighbors;
+        }
+
+        function swap(state, i, j) {
+            const newState = [...state];
+            [newState[i], newState[j]] = [newState[j], newState[i]];
+            return newState;
+        }
+
+        function manhattanDistance(state) {
+            let dist = 0;
+            for (let i = 0; i < 9; i++) {
+                const val = state[i];
+                if (val !== 0) {
+                    const goalIdx = val - 1;
+                    const currentRow = Math.floor(i / 3);
+                    const currentCol = i % 3;
+                    const goalRow = Math.floor(goalIdx / 3);
+                    const goalCol = goalIdx % 3;
+                    dist += Math.abs(currentRow - goalRow) + Math.abs(currentCol - goalCol);
+                }
+            }
+            return dist;
+        }
+
+        function isSolved(state) {
+            return stateToString(state) === stateToString(GOAL);
+        }
+
+        function scramble() {
+            stopAutoPlay();
+            tiles = [...GOAL];
+            const depth = parseInt(document.getElementById('depth').value) || 10;
+            let lastMove = -1;
+            
+            for (let i = 0; i < depth; i++) {
+                const emptyIdx = getEmptyIndex(tiles);
+                const neighbors = getNeighbors(emptyIdx).filter(n => n !== lastMove);
+                const moveIdx = neighbors[Math.floor(Math.random() * neighbors.length)];
+                lastMove = emptyIdx;
+                tiles = swap(tiles, emptyIdx, moveIdx);
+            }
+            
+            scrambledState = [...tiles];
+            currentSolution = null;
+            playbackIndex = 0;
+            
+            // Reset displays
+            ['astar', 'bfs'].forEach(alg => {
+                document.getElementById(`${alg}-nodes`).textContent = '—';
+                document.getElementById(`${alg}-frontier`).textContent = '—';
+                document.getElementById(`${alg}-length`).textContent = '—';
+                document.getElementById(`${alg}-time`).textContent = '—';
+                document.getElementById(`${alg}-status`).textContent = 'Ready';
+                document.getElementById(`${alg}-status`).className = 'status ready';
+            });
+            document.getElementById('solution-display').textContent = 'Scramble and solve to see solution';
+            document.getElementById('step-display').textContent = 'Step 0 / 0';
+            
+            render();
+        }
+
+        function reconstructPath(cameFrom, current) {
+            const path = [current];
+            while (cameFrom.has(stateToString(current))) {
+                current = cameFrom.get(stateToString(current));
+                path.unshift(current);
+            }
+            return path;
+        }
+
+        function solveAStar() {
+            stopAutoPlay();
+            const startState = [...scrambledState];
+            const statusEl = document.getElementById('astar-status');
+            
+            if (isSolved(startState)) {
+                statusEl.textContent = 'Already solved!';
+                statusEl.className = 'status done';
+                return;
+            }
+            
+            statusEl.textContent = 'Searching...';
+            statusEl.className = 'status running';
+            
+            // Use setTimeout to allow UI update
+            setTimeout(() => {
+                const startTime = performance.now();
+                
+                // Priority queue as array (simple but works)
+                const openSet = [{state: startState, f: manhattanDistance(startState), g: 0}];
+                const cameFrom = new Map();
+                const gScore = new Map();
+                gScore.set(stateToString(startState), 0);
+                
+                let nodesExplored = 0;
+                let peakFrontier = 1;
+                
+                while (openSet.length > 0) {
+                    nodesExplored++;
+                    peakFrontier = Math.max(peakFrontier, openSet.length);
+                    
+                    if (nodesExplored > NODE_LIMIT) {
+                        const endTime = performance.now();
+                        document.getElementById('astar-nodes').textContent = nodesExplored.toLocaleString() + '+';
+                        document.getElementById('astar-frontier').textContent = peakFrontier.toLocaleString();
+                        document.getElementById('astar-length').textContent = '—';
+                        document.getElementById('astar-time').textContent = (endTime - startTime).toFixed(0) + ' ms';
+                        statusEl.textContent = 'Gave up (limit reached)';
+                        statusEl.className = 'status failed';
+                        return;
+                    }
+                    
+                    // Get node with lowest f score
+                    openSet.sort((a, b) => a.f - b.f);
+                    const current = openSet.shift();
+                    
+                    if (isSolved(current.state)) {
+                        const endTime = performance.now();
+                        const path = reconstructPath(cameFrom, current.state);
+                        
+                        document.getElementById('astar-nodes').textContent = nodesExplored.toLocaleString();
+                        document.getElementById('astar-frontier').textContent = peakFrontier.toLocaleString();
+                        document.getElementById('astar-length').textContent = (path.length - 1) + ' moves';
+                        document.getElementById('astar-time').textContent = (endTime - startTime).toFixed(0) + ' ms';
+                        statusEl.textContent = 'Solution found!';
+                        statusEl.className = 'status done';
+                        
+                        currentSolution = path;
+                        playbackIndex = 0;
+                        tiles = [...path[0]];
+                        render();
+                        updateSolutionDisplay();
+                        highlightWinner();
+                        return;
+                    }
+                    
+                    const emptyIdx = getEmptyIndex(current.state);
+                    for (const neighborIdx of getNeighbors(emptyIdx)) {
+                        const neighborState = swap(current.state, emptyIdx, neighborIdx);
+                        const tentativeG = current.g + 1;
+                        const neighborKey = stateToString(neighborState);
+                        
+                        if (!gScore.has(neighborKey) || tentativeG < gScore.get(neighborKey)) {
+                            cameFrom.set(neighborKey, current.state);
+                            gScore.set(neighborKey, tentativeG);
+                            const f = tentativeG + manhattanDistance(neighborState);
+                            
+                            // Check if already in openSet
+                            const existing = openSet.findIndex(n => stateToString(n.state) === neighborKey);
+                            if (existing >= 0) {
+                                openSet[existing] = {state: neighborState, f, g: tentativeG};
+                            } else {
+                                openSet.push({state: neighborState, f, g: tentativeG});
+                            }
+                        }
+                    }
+                }
+                
+                const endTime = performance.now();
+                document.getElementById('astar-nodes').textContent = nodesExplored.toLocaleString();
+                document.getElementById('astar-frontier').textContent = peakFrontier.toLocaleString();
+                document.getElementById('astar-length').textContent = '—';
+                document.getElementById('astar-time').textContent = (endTime - startTime).toFixed(0) + ' ms';
+                statusEl.textContent = 'No solution exists';
+                statusEl.className = 'status failed';
+            }, 50);
+        }
+
+        function solveBFS() {
+            stopAutoPlay();
+            const startState = [...scrambledState];
+            const statusEl = document.getElementById('bfs-status');
+            
+            if (isSolved(startState)) {
+                statusEl.textContent = 'Already solved!';
+                statusEl.className = 'status done';
+                return;
+            }
+            
+            statusEl.textContent = 'Searching...';
+            statusEl.className = 'status running';
+            
+            setTimeout(() => {
+                const startTime = performance.now();
+                
+                const queue = [{state: startState, path: [startState]}];
+                const visited = new Set();
+                visited.add(stateToString(startState));
+                
+                let nodesExplored = 0;
+                let peakFrontier = 1;
+                
+                while (queue.length > 0) {
+                    nodesExplored++;
+                    peakFrontier = Math.max(peakFrontier, queue.length);
+                    
+                    if (nodesExplored > NODE_LIMIT) {
+                        const endTime = performance.now();
+                        document.getElementById('bfs-nodes').textContent = nodesExplored.toLocaleString() + '+';
+                        document.getElementById('bfs-frontier').textContent = peakFrontier.toLocaleString();
+                        document.getElementById('bfs-length').textContent = '—';
+                        document.getElementById('bfs-time').textContent = (endTime - startTime).toFixed(0) + ' ms';
+                        statusEl.textContent = 'Gave up (limit reached)';
+                        statusEl.className = 'status failed';
+                        highlightWinner();
+                        return;
+                    }
+                    
+                    const {state, path} = queue.shift();
+                    
+                    if (isSolved(state)) {
+                        const endTime = performance.now();
+                        
+                        document.getElementById('bfs-nodes').textContent = nodesExplored.toLocaleString();
+                        document.getElementById('bfs-frontier').textContent = peakFrontier.toLocaleString();
+                        document.getElementById('bfs-length').textContent = (path.length - 1) + ' moves';
+                        document.getElementById('bfs-time').textContent = (endTime - startTime).toFixed(0) + ' ms';
+                        statusEl.textContent = 'Solution found!';
+                        statusEl.className = 'status done';
+                        
+                        // Only set as current solution if A* hasn't already
+                        if (!currentSolution) {
+                            currentSolution = path;
+                            playbackIndex = 0;
+                            tiles = [...path[0]];
+                            render();
+                            updateSolutionDisplay();
+                        }
+                        highlightWinner();
+                        return;
+                    }
+                    
+                    const emptyIdx = getEmptyIndex(state);
+                    for (const neighborIdx of getNeighbors(emptyIdx)) {
+                        const neighborState = swap(state, emptyIdx, neighborIdx);
+                        const neighborKey = stateToString(neighborState);
+                        
+                        if (!visited.has(neighborKey)) {
+                            visited.add(neighborKey);
+                            queue.push({state: neighborState, path: [...path, neighborState]});
+                        }
+                    }
+                }
+                
+                const endTime = performance.now();
+                document.getElementById('bfs-nodes').textContent = nodesExplored.toLocaleString();
+                document.getElementById('bfs-frontier').textContent = peakFrontier.toLocaleString();
+                document.getElementById('bfs-length').textContent = '—';
+                document.getElementById('bfs-time').textContent = (endTime - startTime).toFixed(0) + ' ms';
+                statusEl.textContent = 'No solution exists';
+                statusEl.className = 'status failed';
+            }, 50);
+        }
+
+        function highlightWinner() {
+            const astarNodes = document.getElementById('astar-nodes').textContent;
+            const bfsNodes = document.getElementById('bfs-nodes').textContent;
+            
+            if (astarNodes === '—' || bfsNodes === '—') return;
+            
+            const astarNum = parseInt(astarNodes.replace(/,/g, '')) || Infinity;
+            const bfsNum = parseInt(bfsNodes.replace(/,/g, '')) || Infinity;
+            
+            if (astarNum < bfsNum) {
+                document.getElementById('astar-nodes').classList.add('winner');
+                document.getElementById('bfs-nodes').classList.remove('winner');
+            } else if (bfsNum < astarNum) {
+                document.getElementById('bfs-nodes').classList.add('winner');
+                document.getElementById('astar-nodes').classList.remove('winner');
+            }
+        }
+
+        function updateSolutionDisplay() {
+            if (!currentSolution) return;
+            
+            const display = document.getElementById('solution-display');
+            const stepDisplay = document.getElementById('step-display');
+            
+            // Build solution string showing which tile was moved
+            const moves = [];
+            for (let i = 1; i < currentSolution.length; i++) {
+                const prev = currentSolution[i - 1];
+                const curr = currentSolution[i];
+                // Find which tile moved (the one that's now where empty was)
+                const prevEmpty = getEmptyIndex(prev);
+                const movedTile = curr[prevEmpty];
+                moves.push(movedTile);
+            }
+            
+            if (moves.length === 0) {
+                display.textContent = 'Already solved!';
+            } else {
+                let html = '';
+                for (let i = 0; i < moves.length; i++) {
+                    if (i === playbackIndex - 1) {
+                        html += `<span class="current-move">[${moves[i]}]</span> `;
+                    } else {
+                        html += moves[i] + ' ';
+                    }
+                }
+                display.innerHTML = html.trim();
+            }
+            
+            stepDisplay.textContent = `Step ${playbackIndex} / ${currentSolution.length - 1}`;
+        }
+
+        function stepForward() {
+            if (!currentSolution || playbackIndex >= currentSolution.length - 1) return;
+            playbackIndex++;
+            tiles = [...currentSolution[playbackIndex]];
+            render();
+            updateSolutionDisplay();
+        }
+
+        function stepBack() {
+            if (!currentSolution || playbackIndex <= 0) return;
+            playbackIndex--;
+            tiles = [...currentSolution[playbackIndex]];
+            render();
+            updateSolutionDisplay();
+        }
+
+        function resetPlayback() {
+            stopAutoPlay();
+            if (!currentSolution) return;
+            playbackIndex = 0;
+            tiles = [...currentSolution[0]];
+            render();
+            updateSolutionDisplay();
+        }
+
+        function autoPlay() {
+            if (!currentSolution) return;
+            
+            if (autoPlayInterval) {
+                stopAutoPlay();
+                return;
+            }
+            
+            document.getElementById('btn-play').textContent = '⏸ Pause';
+            autoPlayInterval = setInterval(() => {
+                if (playbackIndex >= currentSolution.length - 1) {
+                    stopAutoPlay();
+                    return;
+                }
+                stepForward();
+            }, 400);
+        }
+
+        function stopAutoPlay() {
+            if (autoPlayInterval) {
+                clearInterval(autoPlayInterval);
+                autoPlayInterval = null;
+                document.getElementById('btn-play').textContent = '▶ Play';
+            }
+        }
+
+        // Initialize
+        render();
+    </script>
+</body>
+</html>

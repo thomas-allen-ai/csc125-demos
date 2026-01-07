@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solver Comparison: Help</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #ddd;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #fff;
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+        .back {
+            color: #4ecdc4;
+            margin-bottom: 25px;
+            display: block;
+        }
+        h2 {
+            color: #4ecdc4;
+            font-size: 1.1rem;
+            margin-top: 25px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+        p {
+            color: #bbb;
+            margin: 10px 0;
+        }
+        .highlight {
+            color: #fff;
+            font-weight: 600;
+        }
+        .metric {
+            background: #2a2a4e;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .metric-name {
+            color: #4ecdc4;
+            font-weight: 600;
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .algo-box {
+            background: #2a2a4e;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .algo-box h3 {
+            margin: 0 0 8px 0;
+            font-size: 1rem;
+        }
+        .algo-box.astar h3 {
+            color: #4ecdc4;
+        }
+        .algo-box.bfs h3 {
+            color: #ffd93d;
+        }
+        .algo-box p {
+            margin: 5px 0;
+            font-size: 0.9rem;
+        }
+        .example {
+            background: #1a1a3e;
+            border-left: 3px solid #4ecdc4;
+            padding: 10px 15px;
+            margin: 15px 0;
+            font-size: 0.9rem;
+        }
+        .example strong {
+            color: #4ecdc4;
+        }
+        code {
+            background: #2a2a4e;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #ff6b6b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Understanding the Solver Comparison</h1>
+        <a href="8puzzle-solver.html" class="back">← Back to solver</a>
+
+        <h2>The Big Picture</h2>
+        <p>
+            Both algorithms find the <span class="highlight">same solution</span> (the shortest path).
+            The difference is <span class="highlight">how much work</span> they do to find it.
+        </p>
+        <p>
+            A* uses a heuristic (educated guess) to search smarter.
+            BFS searches blindly in all directions.
+        </p>
+
+        <h2>The Two Algorithms</h2>
+        <div class="comparison">
+            <div class="algo-box astar">
+                <h3>A* (Informed)</h3>
+                <p>Uses Manhattan distance to prioritize moves that seem to get closer to the goal.</p>
+                <p>Explores promising paths first.</p>
+            </div>
+            <div class="algo-box bfs">
+                <h3>BFS (Uninformed)</h3>
+                <p>Explores all states at distance 1, then distance 2, then distance 3...</p>
+                <p>No preference—tries everything equally.</p>
+            </div>
+        </div>
+
+        <h2>What the Metrics Mean</h2>
+        
+        <div class="metric">
+            <span class="metric-name">Nodes explored</span><br>
+            How many puzzle states the algorithm examined. Lower is better—it means less work.
+        </div>
+
+        <div class="metric">
+            <span class="metric-name">Peak frontier</span><br>
+            The largest number of states waiting to be explored at any moment. This reflects memory usage. BFS often has huge frontiers; A* keeps them smaller.
+        </div>
+
+        <div class="metric">
+            <span class="metric-name">Solution length</span><br>
+            Number of moves in the solution. Both algorithms find optimal (shortest) solutions, so this should match.
+        </div>
+
+        <div class="metric">
+            <span class="metric-name">Time</span><br>
+            Milliseconds to find the solution. Affected by nodes explored and JavaScript overhead.
+        </div>
+
+        <h2>Why A* Wins</h2>
+        <p>
+            A* uses the <span class="highlight">Manhattan distance</span> heuristic: for each tile, how many squares away is it from its goal position? States with lower totals are explored first.
+        </p>
+        <p>
+            This means A* doesn't waste time on paths that are obviously going the wrong direction.
+        </p>
+
+        <div class="example">
+            <strong>Example:</strong> At scramble depth 12, BFS might explore 30,000+ states while A* explores ~100. Same solution. Wildly different cost.
+        </div>
+
+        <h2>The Node Limit</h2>
+        <p>
+            The demo stops after 100,000 nodes to prevent your browser from freezing. For deep scrambles, BFS may hit this limit and give up, while A* still finds the solution easily.
+        </p>
+        <p>
+            This isn't a flaw in BFS—it's demonstrating <span class="highlight">why heuristics matter</span>. Without smart prioritization, search becomes impractical.
+        </p>
+
+        <h2>Try This</h2>
+        <p>
+            1. Scramble to depth 8. Run both. Note the difference in nodes explored.<br>
+            2. Scramble to depth 15. Run both. Watch BFS struggle or give up.<br>
+            3. Use playback to watch the solution step by step.
+        </p>
+    </div>
+</body>
+</html>
