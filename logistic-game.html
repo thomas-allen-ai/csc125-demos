@@ -12,7 +12,7 @@
             background: #f8fafc;
             -webkit-user-select: none;
             user-select: none;
-            overflow: hidden;
+            overflow-x: hidden;
         }
         #root { 
             min-height: 100vh;
@@ -28,6 +28,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
     
     <script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
+
 const generateDataset = (nTrain = 30, nTest = 20) => {
   const points = [];
   const generatePoint = (classLabel) => {
@@ -47,11 +49,18 @@ const generateDataset = (nTrain = 30, nTest = 20) => {
 };
 
 const sigmoid = (z) => 1 / (1 + Math.exp(-z));
-const predictProb = (x, y, w1, w2, b) => sigmoid(w1 * x + w2 * y + b);
-const pointLoss = (x, y, label, w1, w2, b) => {
-  const p = Math.max(1e-7, Math.min(1 - 1e-7, predictProb(x, y, w1, w2, b)));
-  return label === 1 ? -Math.log(p) : -Math.log(1 - p);
+
+const predictProb = (x, y, w1, w2, b) => {
+  const z = w1 * x + w2 * y + b;
+  return sigmoid(z);
 };
+
+const pointLoss = (x, y, label, w1, w2, b) => {
+  const p = predictProb(x, y, w1, w2, b);
+  const pClamped = Math.max(1e-7, Math.min(1 - 1e-7, p));
+  return label === 1 ? -Math.log(pClamped) : -Math.log(1 - pClamped);
+};
+
 const probCorrect = (x, y, label, w1, w2, b) => {
   const p = predictProb(x, y, w1, w2, b);
   return label === 1 ? p : 1 - p;
@@ -59,7 +68,12 @@ const probCorrect = (x, y, label, w1, w2, b) => {
 
 const computeMetrics = (points, w1, w2, b) => {
   if (points.length === 0) return { loss: 0, accuracy: 0, f1: 0, score: 0 };
-  let totalLoss = 0, correct = 0, tp = 0, fp = 0, fn = 0, totalProbCorrect = 0;
+  
+  let totalLoss = 0;
+  let correct = 0;
+  let tp = 0, fp = 0, fn = 0;
+  let totalProbCorrect = 0;
+  
   points.forEach(({ x, y, label }) => {
     totalLoss += pointLoss(x, y, label, w1, w2, b);
     const p = predictProb(x, y, w1, w2, b);
@@ -70,71 +84,144 @@ const computeMetrics = (points, w1, w2, b) => {
     if (pred === 0 && label === 1) fn++;
     totalProbCorrect += probCorrect(x, y, label, w1, w2, b);
   });
+  
   const precision = tp + fp > 0 ? tp / (tp + fp) : 0;
   const recall = tp + fn > 0 ? tp / (tp + fn) : 0;
   const f1 = precision + recall > 0 ? 2 * precision * recall / (precision + recall) : 0;
-  return { loss: totalLoss / points.length, accuracy: correct / points.length, f1, score: Math.round(totalProbCorrect * 100) };
+  
+  return {
+    loss: totalLoss / points.length,
+    accuracy: correct / points.length,
+    f1,
+    score: Math.round(totalProbCorrect * 100)
+  };
 };
 
+// ORIGINAL WORKING SLIDER CODE - restored exactly
 function TouchSlider({ value, onChange, min, max, step, disabled, label, displayValue }) {
-  const trackRef = React.useRef(null);
-  const [isDragging, setIsDragging] = React.useState(false);
+  const trackRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  
   const valueToPercent = (val) => ((val - min) / (max - min)) * 100;
   const percentToValue = (pct) => min + (pct / 100) * (max - min);
   
-  const handleInteraction = React.useCallback((clientX) => {
+  const handleInteraction = useCallback((clientX) => {
     if (disabled || !trackRef.current) return;
     const rect = trackRef.current.getBoundingClientRect();
     const pct = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
-    let newVal = Math.round(percentToValue(pct) / step) * step;
-    onChange(Math.max(min, Math.min(max, newVal)));
+    let newVal = percentToValue(pct);
+    newVal = Math.round(newVal / step) * step;
+    newVal = Math.max(min, Math.min(max, newVal));
+    onChange(newVal);
   }, [disabled, min, max, step, onChange]);
   
-  const handleThumbStart = (e) => {
+  const handleThumbTouchStart = (e) => {
     if (disabled) return;
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(true);
   };
   
-  React.useEffect(() => {
+  const handleThumbMouseDown = (e) => {
+    if (disabled) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+  
+  const handleTouchMove = useCallback((e) => {
     if (!isDragging) return;
-    const onMove = (e) => {
-      e.preventDefault();
-      handleInteraction(e.touches ? e.touches[0].clientX : e.clientX);
-    };
-    const onEnd = () => setIsDragging(false);
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onEnd);
-    window.addEventListener('touchmove', onMove, { passive: false });
-    window.addEventListener('touchend', onEnd);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onEnd);
-      window.removeEventListener('touchmove', onMove);
-      window.removeEventListener('touchend', onEnd);
-    };
+    e.preventDefault();
+    handleInteraction(e.touches[0].clientX);
   }, [isDragging, handleInteraction]);
   
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+  
+  const handleMouseMove = useCallback((e) => {
+    if (!isDragging) return;
+    handleInteraction(e.clientX);
+  }, [isDragging, handleInteraction]);
+  
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+  
+  useEffect(() => {
+    if (isDragging) {
+      const onMouseMove = (e) => handleMouseMove(e);
+      const onTouchMove = (e) => handleTouchMove(e);
+      
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', onTouchMove, { passive: false });
+      window.addEventListener('touchend', handleTouchEnd);
+      return () => {
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('touchmove', onTouchMove);
+        window.removeEventListener('touchend', handleTouchEnd);
+      };
+    }
+  }, [isDragging, handleMouseMove, handleTouchMove]);
+  
   const percent = valueToPercent(value);
+  
   return (
     <div style={{ marginBottom: '4px', opacity: disabled ? 0.5 : 1 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
         <span style={{ fontWeight: 500 }}>{label}</span>
         <span style={{ color: '#6b7280' }}>{displayValue}</span>
       </div>
-      <div ref={trackRef} style={{
-        position: 'relative', height: '44px', backgroundColor: '#e5e7eb',
-        borderRadius: '22px', cursor: disabled ? 'default' : 'pointer', touchAction: 'none', userSelect: 'none'
-      }}>
-        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${percent}%`,
-          backgroundColor: disabled ? '#9ca3af' : '#3b82f6', borderRadius: '22px', pointerEvents: 'none' }} />
-        <div onMouseDown={handleThumbStart} onTouchStart={handleThumbStart} style={{
-          position: 'absolute', left: `${percent}%`, top: '50%', transform: 'translate(-50%, -50%)',
-          width: '60px', height: '60px', cursor: disabled ? 'default' : 'grab', zIndex: 2 }} />
-        <div style={{ position: 'absolute', left: `${percent}%`, top: '50%', transform: 'translate(-50%, -50%)',
-          width: '36px', height: '36px', backgroundColor: 'white', borderRadius: '50%',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.3)', pointerEvents: 'none' }} />
+      <div
+        ref={trackRef}
+        style={{
+          position: 'relative',
+          height: '44px',
+          backgroundColor: '#e5e7eb',
+          borderRadius: '22px',
+          cursor: disabled ? 'default' : 'pointer',
+          touchAction: 'none',
+          userSelect: 'none'
+        }}
+      >
+        <div style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: `${percent}%`,
+          backgroundColor: disabled ? '#9ca3af' : '#3b82f6',
+          borderRadius: '22px',
+          pointerEvents: 'none'
+        }} />
+        <div
+          onMouseDown={handleThumbMouseDown}
+          onTouchStart={handleThumbTouchStart}
+          style={{
+            position: 'absolute',
+            left: `${percent}%`,
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '60px',
+            height: '60px',
+            cursor: disabled ? 'default' : 'grab',
+            zIndex: 2
+          }}
+        />
+        <div style={{
+          position: 'absolute',
+          left: `${percent}%`,
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '36px',
+          height: '36px',
+          backgroundColor: 'white',
+          borderRadius: '50%',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+          pointerEvents: 'none'
+        }} />
       </div>
     </div>
   );
@@ -143,34 +230,50 @@ function TouchSlider({ value, onChange, min, max, step, disabled, label, display
 const probToColor = (p) => {
   if (p <= 0.5) {
     const t = p / 0.5;
-    return `rgb(220,${Math.round(38 + t * 217)},${Math.round(38 + t * 217)})`;
+    const r = 220;
+    const g = Math.round(38 + t * (255 - 38));
+    const bVal = Math.round(38 + t * (255 - 38));
+    return `rgb(${r},${g},${bVal})`;
   } else {
     const t = (p - 0.5) / 0.5;
-    return `rgb(${Math.round(255 - t * 218)},${Math.round(255 - t * 156)},${Math.round(255 - t * 20)})`;
+    const r = Math.round(255 - t * (255 - 37));
+    const g = Math.round(255 - t * (255 - 99));
+    const bVal = Math.round(255 - t * (255 - 235));
+    return `rgb(${r},${g},${bVal})`;
   }
 };
 
 const formatCoef = (coef, isFirst = false) => {
   const absVal = Math.abs(coef).toFixed(2);
-  return isFirst ? (coef >= 0 ? absVal : `−${absVal}`) : (coef >= 0 ? ` + ${absVal}` : ` − ${absVal}`);
+  if (isFirst) {
+    return coef >= 0 ? absVal : `−${absVal}`;
+  } else {
+    return coef >= 0 ? ` + ${absVal}` : ` − ${absVal}`;
+  }
 };
 
 function LogisticGame() {
-  const [round, setRound] = React.useState(1);
-  const [totalScore, setTotalScore] = React.useState(0);
-  const [phase, setPhase] = React.useState('playing');
-  const [dataset, setDataset] = React.useState(() => generateDataset());
-  const [visibleTrainCount, setVisibleTrainCount] = React.useState(1);
-  const [roundScoreAdded, setRoundScoreAdded] = React.useState(false);
-  const [angle, setAngle] = React.useState(() => Math.random() * 360);
-  const [sharpness, setSharpness] = React.useState(() => 0.5 + Math.random() * 1);
-  const [slide, setSlide] = React.useState(() => (Math.random() - 0.5) * 2);
-  const [isLandscape, setIsLandscape] = React.useState(() => window.innerWidth > window.innerHeight);
+  const [round, setRound] = useState(1);
+  const [totalScore, setTotalScore] = useState(0);
+  const [phase, setPhase] = useState('playing');
+  const [dataset, setDataset] = useState(() => generateDataset());
+  const [visibleTrainCount, setVisibleTrainCount] = useState(1);
+  const [roundScoreAdded, setRoundScoreAdded] = useState(false);
   
-  React.useEffect(() => {
-    const checkOrientation = () => setIsLandscape(window.innerWidth > window.innerHeight);
-    window.addEventListener('resize', checkOrientation);
-    return () => window.removeEventListener('resize', checkOrientation);
+  const [angle, setAngle] = useState(() => Math.random() * 360);
+  const [sharpness, setSharpness] = useState(() => 0.5 + Math.random() * 1);
+  const [slide, setSlide] = useState(() => (Math.random() - 0.5) * 2);
+  
+  const [isLandscape, setIsLandscape] = useState(() => window.innerWidth > window.innerHeight);
+  const [windowSize, setWindowSize] = useState({ w: window.innerWidth, h: window.innerHeight });
+  
+  useEffect(() => {
+    const handleResize = () => {
+      setIsLandscape(window.innerWidth > window.innerHeight);
+      setWindowSize({ w: window.innerWidth, h: window.innerHeight });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
   
   const angleRad = (angle * Math.PI) / 180;
@@ -182,17 +285,22 @@ function LogisticGame() {
   const trainMetrics = computeMetrics(visibleTrain, w1, w2, b);
   const testMetrics = phase === 'revealed' ? computeMetrics(dataset.test, w1, w2, b) : null;
   
-  React.useEffect(() => {
+  useEffect(() => {
     if (phase !== 'playing') return;
     if (visibleTrainCount >= dataset.train.length) {
-      const timer = setTimeout(() => setPhase('revealed'), 1500);
+      const timer = setTimeout(() => {
+        setPhase('revealed');
+      }, 1500);
       return () => clearTimeout(timer);
     }
-    const timer = setTimeout(() => setVisibleTrainCount(c => c + 1), 800);
+    
+    const timer = setTimeout(() => {
+      setVisibleTrainCount(c => c + 1);
+    }, 800);
     return () => clearTimeout(timer);
   }, [visibleTrainCount, phase, dataset.train.length]);
   
-  React.useEffect(() => {
+  useEffect(() => {
     if (phase === 'revealed' && testMetrics && !roundScoreAdded) {
       setTotalScore(prev => prev + testMetrics.score);
       setRoundScoreAdded(true);
@@ -209,36 +317,62 @@ function LogisticGame() {
     setPhase('playing');
     setRoundScoreAdded(false);
   };
-
-  const xRange = [-3, 3], yRange = [-3, 3];
-  const toSvgX = (x) => ((x - xRange[0]) / (xRange[1] - xRange[0])) * 400;
-  const toSvgY = (y) => ((yRange[1] - y) / (yRange[1] - yRange[0])) * 400;
+  
+  // SVG calculations
+  const width = 400;
+  const height = 400;
+  const xRange = [-3, 3];
+  const yRange = [-3, 3];
+  
+  const toSvgX = (x) => ((x - xRange[0]) / (xRange[1] - xRange[0])) * width;
+  const toSvgY = (y) => ((yRange[1] - y) / (yRange[1] - yRange[0])) * height;
   
   const logit = (p) => Math.log(p / (1 - p));
+  
   const wNorm = Math.sqrt(w1 * w1 + w2 * w2);
   const dirX = wNorm > 0.001 ? w1 / wNorm : 1;
   const dirY = wNorm > 0.001 ? w2 / wNorm : 0;
+  
   const extent = 8;
   
-  const gradX1Pct = ((-dirX * extent - xRange[0]) / (xRange[1] - xRange[0])) * 100;
-  const gradY1Pct = ((yRange[1] - (-dirY * extent)) / (yRange[1] - yRange[0])) * 100;
-  const gradX2Pct = ((dirX * extent - xRange[0]) / (xRange[1] - xRange[0])) * 100;
-  const gradY2Pct = ((yRange[1] - dirY * extent) / (yRange[1] - yRange[0])) * 100;
+  const grad1X = -dirX * extent;
+  const grad1Y = -dirY * extent;
+  const grad2X = dirX * extent;
+  const grad2Y = dirY * extent;
+  
+  const gradX1Pct = ((grad1X - xRange[0]) / (xRange[1] - xRange[0])) * 100;
+  const gradY1Pct = ((yRange[1] - grad1Y) / (yRange[1] - yRange[0])) * 100;
+  const gradX2Pct = ((grad2X - xRange[0]) / (xRange[1] - xRange[0])) * 100;
+  const gradY2Pct = ((yRange[1] - grad2Y) / (yRange[1] - yRange[0])) * 100;
   
   const bandProbs = [0.02, 0.10, 0.25, 0.40, 0.50, 0.60, 0.75, 0.90, 0.98];
-  const gradientStops = bandProbs.map(p => ({
-    offset: Math.max(0, Math.min(100, 50 + ((slide + logit(p) / sharpness) / extent) * 50)),
-    color: probToColor(p)
-  })).sort((a, b) => a.offset - b.offset);
+  
+  const gradientStops = bandProbs.map(p => {
+    const distFromOrigin = slide + logit(p) / sharpness;
+    const percent = 50 + (distFromOrigin / extent) * 50;
+    return {
+      offset: Math.max(0, Math.min(100, percent)),
+      color: probToColor(p)
+    };
+  }).sort((a, b) => a.offset - b.offset);
   
   const finalStops = [];
-  if (gradientStops[0].offset > 0) finalStops.push({ offset: 0, color: gradientStops[0].color });
+  if (gradientStops[0].offset > 0) {
+    finalStops.push({ offset: 0, color: gradientStops[0].color });
+  }
   gradientStops.forEach(stop => finalStops.push(stop));
-  if (finalStops[finalStops.length - 1].offset < 100) finalStops.push({ offset: 100, color: finalStops[finalStops.length - 1].color });
+  if (finalStops[finalStops.length - 1].offset < 100) {
+    finalStops.push({ offset: 100, color: finalStops[finalStops.length - 1].color });
+  }
 
-  const arrowBaseX = slide * dirX, arrowBaseY = slide * dirY;
-  const arrowTipX = arrowBaseX + dirX * 1.2, arrowTipY = arrowBaseY + dirY * 1.2;
-  const headLength = 0.3, headAngle = Math.PI / 6;
+  const arrowBaseX = slide * dirX;
+  const arrowBaseY = slide * dirY;
+  const arrowLength = 1.2;
+  const arrowTipX = arrowBaseX + dirX * arrowLength;
+  const arrowTipY = arrowBaseY + dirY * arrowLength;
+  
+  const headLength = 0.3;
+  const headAngle = Math.PI / 6;
   const arrowHead1X = arrowTipX - headLength * Math.cos(angleRad - headAngle);
   const arrowHead1Y = arrowTipY - headLength * Math.sin(angleRad - headAngle);
   const arrowHead2X = arrowTipX - headLength * Math.cos(angleRad + headAngle);
@@ -247,56 +381,97 @@ function LogisticGame() {
   const sliderLocked = phase === 'revealed';
   const gradientId = `prob-gradient-${round}-${angle}`;
 
-  // Score Header Component
-  const ScoreHeader = () => (
+  // Reusable components
+  const ScoreHeader = ({ large }) => (
     <div style={{
-      textAlign: 'center', padding: isLandscape ? '12px' : '8px',
-      backgroundColor: '#1e293b', borderRadius: '10px', color: 'white', marginBottom: '6px'
+      textAlign: 'center',
+      padding: large ? '12px' : '8px',
+      backgroundColor: '#1e293b',
+      borderRadius: '10px',
+      color: 'white',
+      marginBottom: '6px'
     }}>
-      <div style={{ fontSize: isLandscape ? '32px' : '26px', fontWeight: 'bold' }}>{totalScore.toLocaleString()}</div>
+      <div style={{ fontSize: large ? '32px' : '26px', fontWeight: 'bold' }}>
+        {totalScore.toLocaleString()}
+      </div>
       <div style={{ fontSize: '12px', opacity: 0.8 }}>
         Round {round} {phase === 'playing' ? '• Training...' : '• Test Revealed!'}
       </div>
     </div>
   );
 
-  // Scatter Plot Component
   const ScatterPlot = ({ size }) => (
     <div style={{
-      backgroundColor: 'white', borderRadius: '10px', overflow: 'hidden',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.1)', width: size, height: typeof size === 'number' ? size + 60 : 'auto'
+      backgroundColor: 'white',
+      borderRadius: '10px',
+      overflow: 'hidden',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      width: typeof size === 'number' ? size : '100%'
     }}>
-      <svg width={typeof size === 'number' ? size : '100%'} height={typeof size === 'number' ? size : undefined} 
-           viewBox="0 0 400 400" style={{ display: 'block', aspectRatio: '1' }}>
+      <svg 
+        width={typeof size === 'number' ? size : '100%'} 
+        viewBox={`0 0 ${width} ${height}`} 
+        style={{ display: 'block' }}
+      >
         <defs>
-          <linearGradient id={gradientId} x1={`${gradX1Pct}%`} y1={`${gradY1Pct}%`} x2={`${gradX2Pct}%`} y2={`${gradY2Pct}%`}>
-            {finalStops.map((stop, i) => <stop key={i} offset={`${stop.offset}%`} stopColor={stop.color} />)}
+          <linearGradient 
+            id={gradientId}
+            x1={`${gradX1Pct}%`}
+            y1={`${gradY1Pct}%`}
+            x2={`${gradX2Pct}%`}
+            y2={`${gradY2Pct}%`}
+          >
+            {finalStops.map((stop, i) => (
+              <stop key={i} offset={`${stop.offset}%`} stopColor={stop.color} />
+            ))}
           </linearGradient>
         </defs>
-        <rect width="400" height="400" fill={`url(#${gradientId})`} />
+        
+        <rect width={width} height={height} fill={`url(#${gradientId})`} />
+        
         {[-2, -1, 0, 1, 2].map(v => (
           <g key={v}>
-            <line x1={toSvgX(v)} y1={0} x2={toSvgX(v)} y2={400} stroke="rgba(255,255,255,0.4)" strokeWidth="1" />
-            <line x1={0} y1={toSvgY(v)} x2={400} y2={toSvgY(v)} stroke="rgba(255,255,255,0.4)" strokeWidth="1" />
+            <line x1={toSvgX(v)} y1={0} x2={toSvgX(v)} y2={height} stroke="rgba(255,255,255,0.4)" strokeWidth="1" />
+            <line x1={0} y1={toSvgY(v)} x2={width} y2={toSvgY(v)} stroke="rgba(255,255,255,0.4)" strokeWidth="1" />
           </g>
         ))}
-        <line x1={toSvgX(arrowBaseX)} y1={toSvgY(arrowBaseY)} x2={toSvgX(arrowTipX)} y2={toSvgY(arrowTipY)}
-          stroke="#1d4ed8" strokeWidth="3" strokeLinecap="round" />
-        <polygon points={`${toSvgX(arrowTipX)},${toSvgY(arrowTipY)} ${toSvgX(arrowHead1X)},${toSvgY(arrowHead1Y)} ${toSvgX(arrowHead2X)},${toSvgY(arrowHead2Y)}`} fill="#1d4ed8" />
+        
+        <line
+          x1={toSvgX(arrowBaseX)} y1={toSvgY(arrowBaseY)}
+          x2={toSvgX(arrowTipX)} y2={toSvgY(arrowTipY)}
+          stroke="#1d4ed8" strokeWidth="3" strokeLinecap="round"
+        />
+        <polygon
+          points={`${toSvgX(arrowTipX)},${toSvgY(arrowTipY)} ${toSvgX(arrowHead1X)},${toSvgY(arrowHead1Y)} ${toSvgX(arrowHead2X)},${toSvgY(arrowHead2Y)}`}
+          fill="#1d4ed8"
+        />
+        
         {visibleTrain.map((pt, i) => (
           <circle key={`train-${i}`} cx={toSvgX(pt.x)} cy={toSvgY(pt.y)} r={10}
             fill={pt.label === 0 ? '#dc2626' : '#2563eb'} stroke="white" strokeWidth="2" />
         ))}
+        
         {phase === 'revealed' && dataset.test.map((pt, i) => (
           <circle key={`test-${i}`} cx={toSvgX(pt.x)} cy={toSvgY(pt.y)} r={10}
             fill={pt.label === 0 ? '#dc2626' : '#2563eb'} stroke="#fbbf24" strokeWidth="3" />
         ))}
       </svg>
-      <div style={{ textAlign: 'center', padding: '8px 4px', fontSize: '15px', fontFamily: 'Georgia, serif', color: '#374151', borderTop: '1px solid #e5e7eb' }}>
-        <span style={{ fontStyle: 'italic' }}>{formatCoef(w1, true)}x₁{formatCoef(w2)}x₂{formatCoef(b)}</span>
+      
+      <div style={{ 
+        textAlign: 'center', 
+        padding: '8px 4px',
+        fontSize: '15px',
+        fontFamily: 'Georgia, serif',
+        color: '#374151',
+        borderTop: '1px solid #e5e7eb'
+      }}>
+        <span style={{ fontStyle: 'italic' }}>
+          {formatCoef(w1, true)}x₁{formatCoef(w2)}x₂{formatCoef(b)}
+        </span>
         <span style={{ margin: '0 8px', color: '#6b7280' }}>→</span>
         <span style={{ color: '#2563eb', fontWeight: 500 }}>P(blue)</span>
       </div>
+      
       <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', fontSize: '11px', color: '#6b7280', paddingBottom: '6px' }}>
         <span><span style={{ color: '#dc2626' }}>●</span> Class 0</span>
         <span><span style={{ color: '#2563eb' }}>●</span> Class 1</span>
@@ -305,47 +480,123 @@ function LogisticGame() {
     </div>
   );
 
-  // Sliders Component
   const Sliders = () => (
-    <div style={{ backgroundColor: 'white', borderRadius: '10px', padding: '10px 12px', marginBottom: '6px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-      <TouchSlider label="Angle" value={angle} onChange={setAngle} min={0} max={360} step={1} disabled={sliderLocked} displayValue={`${Math.round(angle)}°`} />
-      <TouchSlider label="Sharpness" value={sharpness} onChange={setSharpness} min={0.1} max={3} step={0.05} disabled={sliderLocked} displayValue={sharpness.toFixed(2)} />
-      <TouchSlider label="Slide" value={slide} onChange={setSlide} min={-3} max={3} step={0.1} disabled={sliderLocked} displayValue={slide.toFixed(1)} />
+    <div style={{
+      backgroundColor: 'white',
+      borderRadius: '10px',
+      padding: '10px 12px',
+      marginBottom: '6px',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+    }}>
+      <TouchSlider
+        label="Angle"
+        value={angle}
+        onChange={setAngle}
+        min={0}
+        max={360}
+        step={1}
+        disabled={sliderLocked}
+        displayValue={`${Math.round(angle)}°`}
+      />
+      <TouchSlider
+        label="Sharpness"
+        value={sharpness}
+        onChange={setSharpness}
+        min={0.1}
+        max={3}
+        step={0.05}
+        disabled={sliderLocked}
+        displayValue={sharpness.toFixed(2)}
+      />
+      <TouchSlider
+        label="Slide"
+        value={slide}
+        onChange={setSlide}
+        min={-3}
+        max={3}
+        step={0.1}
+        disabled={sliderLocked}
+        displayValue={slide.toFixed(1)}
+      />
     </div>
   );
 
-  // Metrics Component
   const Metrics = () => (
-    <div style={{ backgroundColor: 'white', borderRadius: '10px', padding: '10px', marginBottom: '6px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+    <div style={{
+      backgroundColor: 'white',
+      borderRadius: '10px',
+      padding: '10px',
+      marginBottom: '6px',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+    }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', textAlign: 'center' }}>
-        <div><div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '2px' }}>Loss</div><div style={{ fontSize: '16px', fontWeight: '600' }}>{trainMetrics.loss.toFixed(2)}</div></div>
-        <div><div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '2px' }}>Accuracy</div><div style={{ fontSize: '16px', fontWeight: '600' }}>{(trainMetrics.accuracy * 100).toFixed(0)}%</div></div>
-        <div><div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '2px' }}>F1</div><div style={{ fontSize: '16px', fontWeight: '600' }}>{trainMetrics.f1.toFixed(2)}</div></div>
+        <div>
+          <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '2px' }}>Loss</div>
+          <div style={{ fontSize: '16px', fontWeight: '600' }}>{trainMetrics.loss.toFixed(2)}</div>
+        </div>
+        <div>
+          <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '2px' }}>Accuracy</div>
+          <div style={{ fontSize: '16px', fontWeight: '600' }}>{(trainMetrics.accuracy * 100).toFixed(0)}%</div>
+        </div>
+        <div>
+          <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '2px' }}>F1</div>
+          <div style={{ fontSize: '16px', fontWeight: '600' }}>{trainMetrics.f1.toFixed(2)}</div>
+        </div>
       </div>
+      
       {phase === 'revealed' && testMetrics && (
         <>
           <hr style={{ margin: '10px 0', border: 'none', borderTop: '1px solid #e5e7eb' }} />
-          <div style={{ fontSize: '11px', color: '#059669', textAlign: 'center', marginBottom: '6px', fontWeight: 500 }}>Test Results</div>
+          <div style={{ fontSize: '11px', color: '#059669', textAlign: 'center', marginBottom: '6px', fontWeight: 500 }}>
+            Test Results
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', textAlign: 'center' }}>
-            <div><div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '2px' }}>Loss</div><div style={{ fontSize: '16px', fontWeight: '600', color: '#059669' }}>{testMetrics.loss.toFixed(2)}</div></div>
-            <div><div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '2px' }}>Accuracy</div><div style={{ fontSize: '16px', fontWeight: '600', color: '#059669' }}>{(testMetrics.accuracy * 100).toFixed(0)}%</div></div>
-            <div><div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '2px' }}>Points</div><div style={{ fontSize: '16px', fontWeight: '600', color: '#059669' }}>+{testMetrics.score}</div></div>
+            <div>
+              <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '2px' }}>Loss</div>
+              <div style={{ fontSize: '16px', fontWeight: '600', color: '#059669' }}>{testMetrics.loss.toFixed(2)}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '2px' }}>Accuracy</div>
+              <div style={{ fontSize: '16px', fontWeight: '600', color: '#059669' }}>{(testMetrics.accuracy * 100).toFixed(0)}%</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '2px' }}>Points</div>
+              <div style={{ fontSize: '16px', fontWeight: '600', color: '#059669' }}>+{testMetrics.score}</div>
+            </div>
           </div>
         </>
       )}
     </div>
   );
 
-  // Progress/Button Component  
   const ProgressOrButton = () => (
     phase === 'revealed' ? (
-      <button onClick={nextRound} style={{
-        width: '100%', padding: '14px', fontSize: '16px', fontWeight: '600',
-        backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '10px',
-        cursor: 'pointer', boxShadow: '0 2px 8px rgba(37,99,235,0.3)'
-      }}>Next Round →</button>
+      <button
+        onClick={nextRound}
+        style={{
+          width: '100%',
+          padding: '14px',
+          fontSize: '16px',
+          fontWeight: '600',
+          backgroundColor: '#2563eb',
+          color: 'white',
+          border: 'none',
+          borderRadius: '10px',
+          cursor: 'pointer',
+          boxShadow: '0 2px 8px rgba(37,99,235,0.3)'
+        }}
+      >
+        Next Round →
+      </button>
     ) : (
-      <div style={{ textAlign: 'center', color: '#6b7280', fontSize: '12px', padding: '6px', backgroundColor: 'white', borderRadius: '10px' }}>
+      <div style={{ 
+        textAlign: 'center', 
+        color: '#6b7280', 
+        fontSize: '12px',
+        padding: '6px',
+        backgroundColor: 'white',
+        borderRadius: '10px'
+      }}>
         Training: {visibleTrainCount} / {dataset.train.length}
       </div>
     )
@@ -353,21 +604,25 @@ function LogisticGame() {
 
   // LANDSCAPE LAYOUT
   if (isLandscape) {
-    const plotSize = Math.min(window.innerHeight - 40, window.innerWidth * 0.55);
+    const plotSize = Math.min(windowSize.h - 40, windowSize.w * 0.55);
     return (
       <div style={{
         fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
-        display: 'flex', flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center',
-        padding: '10px', gap: '16px', backgroundColor: '#f8fafc', minHeight: '100vh', minWidth: '100vw'
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        padding: '10px',
+        gap: '16px',
+        backgroundColor: '#f8fafc',
+        minHeight: '100vh'
       }}>
-        {/* Left: Plot */}
         <div style={{ flexShrink: 0 }}>
           <ScatterPlot size={plotSize} />
         </div>
         
-        {/* Right: Controls */}
         <div style={{ width: '320px', maxWidth: '35vw', display: 'flex', flexDirection: 'column' }}>
-          <ScoreHeader />
+          <ScoreHeader large />
           <Sliders />
           <Metrics />
           <ProgressOrButton />
@@ -376,16 +631,23 @@ function LogisticGame() {
     );
   }
 
-  // PORTRAIT LAYOUT (original)
+  // PORTRAIT LAYOUT
   return (
     <div style={{
       fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
-      maxWidth: '100%', margin: '0 auto', padding: '4px',
-      backgroundColor: '#f8fafc', minHeight: '100vh', boxSizing: 'border-box',
-      userSelect: 'none', WebkitUserSelect: 'none'
+      maxWidth: '100%',
+      margin: '0 auto',
+      padding: '4px',
+      backgroundColor: '#f8fafc',
+      minHeight: '100vh',
+      boxSizing: 'border-box',
+      userSelect: 'none',
+      WebkitUserSelect: 'none'
     }}>
       <ScoreHeader />
-      <div style={{ marginBottom: '6px' }}><ScatterPlot size="100%" /></div>
+      <div style={{ marginBottom: '6px' }}>
+        <ScatterPlot size="100%" />
+      </div>
       <Sliders />
       <Metrics />
       <ProgressOrButton />
