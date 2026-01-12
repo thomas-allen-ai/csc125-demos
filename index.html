@@ -81,16 +81,8 @@
             padding-left: 4px;
         }
         
-        .demo-link.coming-soon {
-            opacity: 0.5;
-            pointer-events: none;
-        }
-        
-        .demo-link.coming-soon .demo-title::after {
-            content: " (coming soon)";
-            font-weight: 400;
-            font-size: 0.8rem;
-            color: #999;
+        .section-label:first-of-type {
+            margin-top: 0;
         }
     </style>
 </head>
@@ -114,6 +106,18 @@
         <a href="8puzzle-solver.html" class="demo-link">
             <div class="demo-title">8-Puzzle: Solver</div>
             <div class="demo-desc">Compare A* vs BFS — see why heuristics matter</div>
+        </a>
+        
+        <div class="section-label">Unit 2: Machine Learning</div>
+        
+        <a href="logistic-game.html" class="demo-link">
+            <div class="demo-title">Logistic Game</div>
+            <div class="demo-desc">Train a classifier by hand — feel how machines learn</div>
+        </a>
+        
+        <a href="logistic-game-instructions.html" class="demo-link" style="background: #1a2744; font-size: 0.9em;">
+            <div class="demo-title" style="font-size: 0.95rem;">📖 Logistic Game: How It Works</div>
+            <div class="demo-desc">Instructions and connection to logistic regression</div>
         </a>
     </div>
 </body>
