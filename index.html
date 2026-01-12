@@ -84,6 +84,18 @@
         .section-label:first-of-type {
             margin-top: 0;
         }
+        
+        .demo-link.coming-soon {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        
+        .demo-link.coming-soon .demo-title::after {
+            content: " (coming soon)";
+            font-weight: 400;
+            font-size: 0.8rem;
+            color: #999;
+        }
     </style>
 </head>
 <body>
