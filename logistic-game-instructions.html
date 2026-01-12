@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logistic Game Instructions – CSC 125</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #e5e7eb;
+            min-height: 100vh;
+            margin: 0;
+            padding: 30px 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #fff;
+            font-size: 1.6rem;
+            margin-bottom: 8px;
+        }
+        h2 {
+            color: #60a5fa;
+            font-size: 1.2rem;
+            margin-top: 32px;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #374151;
+            padding-bottom: 6px;
+        }
+        p {
+            margin: 0 0 16px 0;
+        }
+        .tip {
+            background: #1e3a5f;
+            border-left: 4px solid #3b82f6;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .warning {
+            background: #422006;
+            border-left: 4px solid #f59e0b;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .key-idea {
+            background: #14532d;
+            border-left: 4px solid #22c55e;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        ul {
+            margin: 0 0 16px 0;
+            padding-left: 24px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        code {
+            background: #374151;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.9em;
+        }
+        .color-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
+        .red { background: #dc2626; }
+        .blue { background: #2563eb; }
+        .play-btn {
+            display: inline-block;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-weight: 600;
+            margin: 20px 0;
+            transition: background 0.2s;
+        }
+        .play-btn:hover {
+            background: #1d4ed8;
+        }
+        .back-link {
+            color: #9ca3af;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .back-link:hover {
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← Back to all demos</a>
+        
+        <h1>Logistic Game</h1>
+        <p style="color: #9ca3af; margin-bottom: 24px;">Train a classifier by hand — feel how machines learn</p>
+        
+        <a href="logistic-game.html" class="play-btn">▶ Play Now</a>
+        
+        <h2>How to Play</h2>
+        
+        <p>Training data points appear one at a time. Your job is to draw a <strong>decision boundary</strong> that separates the two classes:</p>
+        
+        <ul>
+            <li><span class="color-dot red"></span><strong>Red points</strong> = Class 0</li>
+            <li><span class="color-dot blue"></span><strong>Blue points</strong> = Class 1</li>
+        </ul>
+        
+        <p>Use the three sliders to position your boundary:</p>
+        
+        <ul>
+            <li><strong>Angle</strong> — rotates the boundary (0° to 360°)</li>
+            <li><strong>Sharpness</strong> — how confident the model is near the boundary (sharper = more confident)</li>
+            <li><strong>Slide</strong> — moves the boundary left/right along the arrow direction</li>
+        </ul>
+        
+        <p>When training ends, your sliders lock and a <strong>test set</strong> appears (marked with yellow rings). Your score depends on how well your boundary generalizes to data you haven't seen.</p>
+        
+        <div class="warning">
+            <strong>Common mistake: Getting the classes reversed!</strong><br>
+            The <strong>blue arrow</strong> points toward where <span class="color-dot blue"></span>blue points should be. If you point the arrow toward <span class="color-dot red"></span>red points, you'll classify everything backward and score near zero.
+        </div>
+        
+        <h2>What the Colors Mean</h2>
+        
+        <p>The background gradient shows probability:</p>
+        
+        <ul>
+            <li><strong>Deep red</strong> = high probability of Class 0 (red)</li>
+            <li><strong>White</strong> = 50/50 (the decision boundary)</li>
+            <li><strong>Deep blue</strong> = high probability of Class 1 (blue)</li>
+        </ul>
+        
+        <p>The boundary itself is where the model is least certain. As you increase Sharpness, the transition from red to blue gets faster — the model becomes more confident.</p>
+        
+        <h2>How It Connects to Logistic Regression</h2>
+        
+        <p>You're doing by hand what machine learning algorithms do automatically.</p>
+        
+        <div class="key-idea">
+            <strong>You are the optimizer.</strong><br>
+            In real machine learning, an algorithm called <em>stochastic gradient descent</em> (SGD) adjusts the parameters. Here, you're SGD. You see one point, adjust sliders, see another point, adjust again.
+        </div>
+        
+        <p>The formula at the bottom shows the actual logistic regression equation:</p>
+        
+        <p style="text-align: center; font-family: Georgia, serif; font-size: 1.1em; color: #fff;">
+            <em>w₁x₁ + w₂x₂ + b</em> → P(blue)
+        </p>
+        
+        <p>Your three sliders control these three parameters:</p>
+        
+        <ul>
+            <li><strong>Angle</strong> → determines the <em>direction</em> of w₁ and w₂</li>
+            <li><strong>Sharpness</strong> → determines the <em>magnitude</em> of w₁ and w₂</li>
+            <li><strong>Slide</strong> → determines the bias term <em>b</em></li>
+        </ul>
+        
+        <p>The model outputs a probability between 0 and 1. Points with P > 0.5 are classified as blue; points with P < 0.5 are classified as red.</p>
+        
+        <h2>Why Scoring Rewards Confidence</h2>
+        
+        <p>Your score is based on the <em>probability</em> assigned to the correct class, not just whether you got it right or wrong:</p>
+        
+        <div class="tip">
+            <strong>Score = 100 × average P(correct class)</strong><br><br>
+            If you correctly classify a point but only assign it 51% probability, you get 51 points. If you're 95% confident, you get 95 points. This is why Sharpness matters — being <em>confidently correct</em> beats being <em>barely correct</em>.
+        </div>
+        
+        <p>But beware: if you're confidently <em>wrong</em>, the loss goes through the roof. Real machine learning uses this same principle to train models.</p>
+        
+        <h2>The Key Insight</h2>
+        
+        <p>After a few rounds, you'll notice something: the boundary you fit to training data doesn't always work on test data. Sometimes a point lands right on the edge. Sometimes you got lucky; sometimes you didn't.</p>
+        
+        <div class="key-idea">
+            <strong>This is the essence of machine learning.</strong><br>
+            You're not memorizing the training data — you're trying to learn a pattern that generalizes. The gap between training performance and test performance is the central challenge of every ML system.
+        </div>
+        
+        <p>Real neural networks use the exact same loss function. A single-layer neural network with no hidden layer <em>is</em> logistic regression. What you're adjusting by hand is what backpropagation does automatically — millions of times per second.</p>
+        
+        <a href="logistic-game.html" class="play-btn" style="margin-top: 32px;">▶ Play the Game</a>
+    </div>
+</body>
+</html>
